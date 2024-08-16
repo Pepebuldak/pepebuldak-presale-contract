@@ -5,13 +5,11 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "./interfaces/IAggregator.sol";
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./interfaces/IStakingManager.sol";
 
 
 contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable, PausableUpgradeable {
-  using PresaleLibrary for uint256;
-
   uint256 public totalTokensSold;
   uint256 public startTime;
   uint256 public endTime;
@@ -35,14 +33,15 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   bool public stakingWhitelistStatus;
 
   IERC20Upgradeable public USDTInterface;
-  Aggregator public aggregatorInterface;
+  StakingManager public stakingManagerInterface;
+  AggregatorV3Interface public priceFeed;
+
   mapping(address => uint256) public userDeposits;
   mapping(address => bool) public hasClaimed;
   mapping(address => bool) public isBlacklisted;
   mapping(address => bool) public isWhitelisted;
   mapping(address => bool) public wertWhitelisted;
 
-  StakingManager public stakingManagerInterface;
 
   event SaleTimeSet(uint256 _start, uint256 _end, uint256 timestamp);
   event SaleTimeUpdated(bytes32 indexed key, uint256 prevValue, uint256 newValue, uint256 timestamp);
@@ -56,6 +55,13 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() initializer {}
+
+  /**
+   * @dev To initialize the contract with price feed address
+   */
+  function initialize(address _priceFeed) public initializer {
+      priceFeed = AggregatorV3Interface(_priceFeed);
+  }
 
   /**
    * @dev To pause the presale
@@ -118,9 +124,9 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
    * @dev To get latest ETH price in 10**18 format
    */
   function getLatestPrice() public view returns (uint256) {
-    (, int256 price, , , ) = aggregatorInterface.latestRoundData();
-    price = (price * (10 ** 10));
-    return uint256(price);
+      (, int256 price, , , ) = priceFeed.latestRoundData();
+      price = price * (10 ** 10); // ETH/USD price with 18 decimals
+      return uint256(price);
   }
 
   function setSplits(address[] memory _wallets, uint256[] memory _percentages) public onlyOwner {
