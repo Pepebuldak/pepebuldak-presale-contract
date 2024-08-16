@@ -1,0 +1,10 @@
+ganache_data
+node_modules
+.openzeppelin/
+.env
+.env.*
+artifacts/
+cache/
+contracts-exposed/
+docs/
+typechain-types/
