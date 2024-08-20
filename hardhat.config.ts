@@ -1,4 +1,3 @@
-import "hardhat-exposed";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "solidity-coverage";
@@ -6,22 +5,17 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-etherscan";
-import "hardhat-preprocessor";
-import "hardhat-tracer";
-import "hardhat-storage-layout";
-import "hardhat-exposed";
 import "hardhat-gas-reporter";
-import "@primitivefi/hardhat-dodoc";
 
 import { HardhatUserConfig } from "hardhat/types";
 
-require('dotenv').config()
+require("dotenv").config();
 
 const { ETHEREUM_NODE_PROVIDER, PRIVATE_KEY, ETHERSCAN_API } = process.env;
 
 if (!PRIVATE_KEY || !ETHEREUM_NODE_PROVIDER) {
   console.error("Environment not set");
-  process.exit(1)
+  process.exit(1);
 }
 
 const config: HardhatUserConfig = {
@@ -45,7 +39,7 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: ETHERSCAN_API
+    apiKey: ETHERSCAN_API,
   },
 };
 

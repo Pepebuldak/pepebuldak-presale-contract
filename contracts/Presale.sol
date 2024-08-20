@@ -13,7 +13,6 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   uint256 public totalTokensSold;
   uint256 public startTime;
   uint256 public endTime;
-  uint256 public claimStart;
   address public saleToken;
   uint256 public baseDecimals;
   uint256 public maxTokensToBuy;
@@ -40,7 +39,6 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   mapping(address => bool) public hasClaimed;
   mapping(address => bool) public isBlacklisted;
   mapping(address => bool) public isWhitelisted;
-  mapping(address => bool) public wertWhitelisted;
 
 
   event SaleTimeSet(uint256 _start, uint256 _end, uint256 timestamp);
@@ -53,15 +51,14 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   event TokensBoughtAndStaked(address indexed user, uint256 indexed tokensBought, address indexed purchaseToken, uint256 amountPaid, uint256 usdEq, uint256 timestamp);
   event TokensClaimedAndStaked(address indexed user, uint256 amount, uint256 timestamp);
 
-  /// @custom:oz-upgrades-unsafe-allow constructor
-  constructor() initializer {}
-
   /**
    * @dev To initialize the contract with price feed address
    */
   function initialize(address _priceFeed) public initializer {
-      priceFeed = AggregatorV3Interface(_priceFeed);
-  }
+    __Ownable_init();  // Initialize owner
+    priceFeed = AggregatorV3Interface(_priceFeed);
+    baseDecimals = 1000000000000000000;
+}
 
   /**
    * @dev To pause the presale
@@ -154,9 +151,8 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   /**
    * @dev To buy into a presale using USDT
    * @param amount No of tokens to buy
-   * @param stake boolean flag for token staking
    */
-  function buyWithUSDT(uint256 amount, bool stake) external checkSaleState(amount) whenNotPaused returns (bool) {
+  function buyWithUSDT(uint256 amount) external checkSaleState(amount) whenNotPaused returns (bool) {
     uint256 usdPrice = calculatePrice(amount);
     totalTokensSold += amount;
     uint256 price = usdPrice / (10 ** 12);
@@ -173,17 +169,12 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
       remainingTokensTracker.push(unsoldTokens);
       currentStep += 1;
     }
-    if (stake) {
-      if (stakingWhitelistStatus) {
-        require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
-      }
-      stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
-      totalBoughtAndStaked += amount;
-      emit TokensBoughtAndStaked(_msgSender(), amount, address(USDTInterface), price, usdPrice, block.timestamp);
-    } else {
-      userDeposits[_msgSender()] += (amount * baseDecimals);
-      emit TokensBought(_msgSender(), amount, address(USDTInterface), price, usdPrice, block.timestamp);
+    if (stakingWhitelistStatus) {
+      require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
     }
+    stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
+    totalBoughtAndStaked += amount;
+    emit TokensBoughtAndStaked(_msgSender(), amount, address(USDTInterface), price, usdPrice, block.timestamp);
     usdRaised += usdPrice;
     uint256 ourAllowance = USDTInterface.allowance(_msgSender(), address(this));
     require(price <= ourAllowance, "Make sure to add enough allowance");
@@ -195,9 +186,8 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   /**
    * @dev To buy into a presale using ETH
    * @param amount No of tokens to buy
-   * @param stake boolean flag for token staking
    */
-  function buyWithEth(uint256 amount, bool stake) external payable checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
+  function buyWithEth(uint256 amount) external payable checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
     uint256 usdPrice = calculatePrice(amount);
     uint256 ethAmount = (usdPrice * baseDecimals) / getLatestPrice();
     require(msg.value >= ethAmount, "Less payment");
@@ -216,63 +206,15 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
       remainingTokensTracker.push(unsoldTokens);
       currentStep += 1;
     }
-    if (stake) {
-      if (stakingWhitelistStatus) {
-        require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
-      }
-      stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
-      totalBoughtAndStaked += amount;
-      emit TokensBoughtAndStaked(_msgSender(), amount, address(0), ethAmount, usdPrice, block.timestamp);
-    } else {
-      userDeposits[_msgSender()] += (amount * baseDecimals);
-      emit TokensBought(_msgSender(), amount, address(0), ethAmount, usdPrice, block.timestamp);
+    if (stakingWhitelistStatus) {
+      require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
     }
+    stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
+    totalBoughtAndStaked += amount;
+    emit TokensBoughtAndStaked(_msgSender(), amount, address(0), ethAmount, usdPrice, block.timestamp);
     usdRaised += usdPrice;
     splitETHValue(ethAmount);
     if (excess > 0) sendValue(payable(_msgSender()), excess);
-    return true;
-  }
-
-  /**
-   * @dev To buy ETH directly from wert .*wert contract address should be whitelisted if wertBuyRestrictionStatus is set true
-   * @param _user address of the user
-   * @param _amount No of ETH to buy
-   * @param stake boolean flag for token staking
-   */
-  function buyWithETHWert(address _user, uint256 _amount, bool stake) external payable checkSaleState(_amount) whenNotPaused nonReentrant returns (bool) {
-    require(wertWhitelisted[_msgSender()], "User not whitelisted for this tx");
-    uint256 usdPrice = calculatePrice(_amount);
-    uint256 ethAmount = (usdPrice * baseDecimals) / getLatestPrice();
-    require(msg.value >= ethAmount, "Less payment");
-    uint256 excess = msg.value - ethAmount;
-    totalTokensSold += _amount;
-    if (checkPoint != 0) checkPoint += _amount;
-    uint256 total = totalTokensSold > checkPoint ? totalTokensSold : checkPoint;
-    if (total > rounds[0][currentStep] || block.timestamp >= rounds[2][currentStep]) {
-      if (block.timestamp >= rounds[2][currentStep]) {
-        checkPoint = rounds[0][currentStep] + _amount;
-      }
-      if (dynamicTimeFlag) {
-        manageTimeDiff();
-      }
-      uint256 unsoldTokens = total > rounds[0][currentStep] ? 0 : rounds[0][currentStep] - total - _amount;
-      remainingTokensTracker.push(unsoldTokens);
-      currentStep += 1;
-    }
-    if (stake) {
-      if (stakingWhitelistStatus) {
-        require(isWhitelisted[_user], "User not whitelisted for stake");
-      }
-      stakingManagerInterface.depositByPresale(_user, _amount * baseDecimals);
-      totalBoughtAndStaked += _amount;
-      emit TokensBoughtAndStaked(_user, _amount, address(0), ethAmount, usdPrice, block.timestamp);
-    } else {
-      userDeposits[_user] += (_amount * baseDecimals);
-      emit TokensBought(_user, _amount, address(0), ethAmount, usdPrice, block.timestamp);
-    }
-    usdRaised += usdPrice;
-    splitETHValue(ethAmount);
-    if (excess > 0) sendValue(payable(_user), excess);
     return true;
   }
 
@@ -338,25 +280,16 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   }
 
   /**
-   * @dev to initialize staking manager with new addredd
-   * @param _stakingManagerAddress address of the staking smartcontract
-   */
-  function setStakingManager(address _stakingManagerAddress) external onlyOwner {
-    require(_stakingManagerAddress != address(0), "staking manager cannot be inatialized with zero address");
-    stakingManagerInterface = StakingManager(_stakingManagerAddress);
-    IERC20Upgradeable(saleToken).approve(_stakingManagerAddress, type(uint256).max);
-  }
-
-  /**
    * @dev To set the claim start time and sale token address by the owner
-   * @param _claimStart claim start time
+   * @param _startTime start time
+   * @param _endTime start time
    * @param noOfTokens no of tokens to add to the contract
    * @param _saleToken sale toke address
    */
-  function startClaim(uint256 _claimStart, uint256 noOfTokens, address _saleToken, address _stakingManagerAddress) external onlyOwner returns (bool) {
+  function startClaim(uint256 _startTime, uint256 _endTime, uint256 noOfTokens, address _saleToken, address _stakingManagerAddress) external onlyOwner returns (bool) {
     require(_saleToken != address(0), "Zero token address");
-    // require(claimStart == 0, "Claim already set");
-    claimStart = _claimStart;
+    startTime = _startTime;
+    endTime = _endTime;
     saleToken = _saleToken;
     whitelistClaimOnly = true;
     stakingManagerInterface = StakingManager(_stakingManagerAddress);
@@ -373,75 +306,6 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
    */
   function setStakingWhitelistStatus(bool _status) external onlyOwner {
     stakingWhitelistStatus = _status;
-  }
-
-  /**
-   * @dev To change the claim start time by the owner
-   * @param _claimStart new claim start time
-   */
-  function changeClaimStart(uint256 _claimStart) external onlyOwner returns (bool) {
-    require(claimStart > 0, "Initial claim data not set");
-    require(_claimStart > endTime, "Sale in progress");
-    require(_claimStart > block.timestamp, "Claim start in past");
-    uint256 prevValue = claimStart;
-    claimStart = _claimStart;
-    emit ClaimStartUpdated(prevValue, _claimStart, block.timestamp);
-    return true;
-  }
-
-  /**
-   * @dev To claim tokens after claiming starts
-   */
-  function claim() external whenNotPaused returns (bool) {
-    require(saleToken != address(0), "Sale token not added");
-    require(!isBlacklisted[_msgSender()], "This Address is Blacklisted");
-    if (whitelistClaimOnly) {
-      require(isWhitelisted[_msgSender()], "User not whitelisted for claim");
-    }
-    require(block.timestamp >= claimStart, "Claim has not started yet");
-    require(!hasClaimed[_msgSender()], "Already claimed");
-    hasClaimed[_msgSender()] = true;
-    uint256 amount = userDeposits[_msgSender()];
-    require(amount > 0, "Nothing to claim");
-    delete userDeposits[_msgSender()];
-    bool success = IERC20Upgradeable(saleToken).transfer(_msgSender(), amount);
-    require(success, "Token transfer failed");
-    emit TokensClaimed(_msgSender(), amount, block.timestamp);
-    return true;
-  }
-
-  function claimAndStake() external whenNotPaused returns (bool) {
-    require(saleToken != address(0), "Sale token not added");
-    require(!isBlacklisted[_msgSender()], "This Address is Blacklisted");
-    if (stakingWhitelistStatus) {
-      require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
-    }
-    uint256 amount = userDeposits[_msgSender()];
-    require(amount > 0, "Nothing to stake");
-    stakingManagerInterface.depositByPresale(_msgSender(), amount);
-    delete userDeposits[_msgSender()];
-    emit TokensClaimedAndStaked(_msgSender(), amount, block.timestamp);
-    return true;
-  }
-
-  /**
-   * @dev To add wert contract addresses to whitelist
-   * @param _addressesToWhitelist addresses of the contract
-   */
-  function whitelistUsersForWERT(address[] calldata _addressesToWhitelist) external onlyOwner {
-    for (uint256 i = 0; i < _addressesToWhitelist.length; i++) {
-      wertWhitelisted[_addressesToWhitelist[i]] = true;
-    }
-  }
-
-  /**
-   * @dev To remove wert contract addresses to whitelist
-   * @param _addressesToRemoveFromWhitelist addresses of the contracts
-   */
-  function removeFromWhitelistForWERT(address[] calldata _addressesToRemoveFromWhitelist) external onlyOwner {
-    for (uint256 i = 0; i < _addressesToRemoveFromWhitelist.length; i++) {
-      wertWhitelisted[_addressesToRemoveFromWhitelist[i]] = false;
-    }
   }
 
   function changeMaxTokensToBuy(uint256 _maxTokensToBuy) external onlyOwner {
@@ -604,5 +468,12 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     for (uint256 i = 0; i < _unsoldTokens.length; i++) {
       remainingTokensTracker.push(_unsoldTokens[i]);
     }
+  }
+
+  function withdrawRemainingTokens() external onlyOwner {
+      require(block.timestamp > endTime, "Presale is still ongoing");
+      uint256 remainingTokens = IERC20Upgradeable(saleToken).balanceOf(address(this));
+      require(remainingTokens > 0, "No remaining tokens to withdraw");
+      IERC20Upgradeable(saleToken).transfer(owner(), remainingTokens);
   }
 }

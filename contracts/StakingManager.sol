@@ -221,6 +221,10 @@ contract stakingManager is OwnableUpgradeable {
   function setClaimStart(uint _claimStart) external onlyOwner {
     claimStart = _claimStart;
   }
+  
+  function setRewardTokensPerBlock(uint256 _rewardTokensPerBlock) external onlyOwner {
+    rewardTokensPerBlock = _rewardTokensPerBlock;
+  }
 
   /**
    * @dev To add users to blacklist which restricts blacklisted users from claiming

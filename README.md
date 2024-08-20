@@ -1,27 +1,38 @@
 # ENV
-* node 18.0.0
+
+- node 18.0.0
 
 # Ganache-cli
+
 local contract test
+
 ```
 $ docker-compose up
 ```
 
 # hardhat
-* env setting
+
+- env setting
+
 ```
 $ cp .env-example .env
 $ yarn install
 ```
-* contract proxy deploy
+
+- contract proxy deploy
+
 ```
-$ yarn hardhat run scripts/proxyDeploy.ts --network ganache
+$ yarn hardhat run scripts/deployProxy.ts --network ganache
 ```
-* contract verify
+
+- contract verify
+
 ```
 $ yarn hardhat verify 0x0000 --contract contracts/Presale.sol:Presale --network ethereum
 ```
-* ABI
+
+- ABI
+
 ```
 $ solc ./contracts/ContractName.sol --abi --include-path node_modules/ --base-path .
 ```

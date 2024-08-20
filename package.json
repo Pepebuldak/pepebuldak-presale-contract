@@ -51,6 +51,7 @@
   "license": "MIT",
   "dependencies": {
     "@chainlink/contracts": "^1.2.0",
+    "@openzeppelin/contracts": "^4.9.3",
     "hardhat": "^2.22.8"
   }
 }
