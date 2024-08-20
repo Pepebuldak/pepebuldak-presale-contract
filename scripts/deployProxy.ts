@@ -45,13 +45,18 @@ async function main() {
   // Start the claim process in the Presale contract
   const startTime = 1724142297;
   const endTime = 1755678297;
-  const noOfTokens = ethers.BigNumber.from("2100000000000000000000000000"); // Provided token amount
+  const noOfTokens = ethers.BigNumber.from("2100000000000000000000000000000"); // Provided token amount
 
   const tokenContract = await ethers.getContractAt(
     IERC20_ABI,
     saleTokenAddress
   );
   await tokenContract.approve(presaleAddress, noOfTokens);
+  const currentAllowance = await tokenContract.allowance(
+    deployer.address,
+    presaleAddress
+  );
+  console.log(`Current allowance: ${currentAllowance.toString()}`);
   await presaleContract.startClaim(
     startTime,
     endTime,
