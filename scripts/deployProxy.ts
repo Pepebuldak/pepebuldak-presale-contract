@@ -7,14 +7,15 @@ async function main() {
 
   // Chainlink contract address (ETH/USD), Sepolia
   const priceFeedAddress = process.env.PRICE_FEED_ADDRESS;
+  const usdtAddress = process.env.USDT_ADDRESS;
   const saleTokenAddress = process.env.SALE_TOKEN_ADDRESS;
-  if (!priceFeedAddress || !saleTokenAddress) return;
+  if (!priceFeedAddress || !saleTokenAddress || !usdtAddress) return;
 
   // Deploy the Presale contract first to get its address
   const presaleAddress = await deployProxy(
     "Presale",
     [], // Constructor arguments
-    [priceFeedAddress] // Initialize arguments
+    [priceFeedAddress, usdtAddress] // Initialize arguments
   );
   console.log(`Presale deployed to: ${presaleAddress}`);
 
@@ -72,11 +73,11 @@ async function main() {
 
   const roundsAmount = Array(20).fill(tokenPerRound); // 20 rounds
   const roundsPrice = [
-    8000000000000000, 8032000000000000, 8064100000000000, 8096400000000000,
-    8128800000000000, 8161300000000000, 8193900000000000, 8226600000000000,
-    8259400000000000, 8292300000000000, 8325300000000000, 8358400000000000,
-    8391600000000000, 8424900000000000, 8458300000000000, 8491800000000000,
-    8525400000000000, 8559100000000000, 8592900000000000, 8626800000000000,
+    800000000000000, 880000000000000, 968000000000000, 1064800000000000,
+    1171280000000000, 1288408000000000, 1417248800000000, 1558973680000000,
+    1714871048000000, 1886358152800000, 2074993968080000, 2282493364888000,
+    2510742701376800, 2761816971514480, 3037998668665928, 3341798535532520,
+    3675978389085772, 4043576227994348, 4447933850793784, 4892727235873164,
   ];
 
   // 7 days(604800s) terms

@@ -28,7 +28,7 @@ export const deployProxy = async (
 export const upgradesProxy = async (
   proxyAddress: string,
   contractName: string,
-  constructorArgs: unknown[]
+  constructorArgs?: unknown[]
 ) => {
   const contractFactory = await ethers.getContractFactory(contractName);
   const contract = await upgrades.upgradeProxy(proxyAddress, contractFactory, {
@@ -37,7 +37,7 @@ export const upgradesProxy = async (
   });
   await contract.deployed();
   console.log(`[${contractName} proxy upgraded]: ${contract.address}`);
-  return contract.address;
+  return contract;
 };
 
 // IERC20 interface

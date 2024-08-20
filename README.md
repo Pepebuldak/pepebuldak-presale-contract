@@ -34,7 +34,7 @@ $ yarn hardhat verify 0x0000 --contract contracts/Presale.sol:Presale --network 
 - ABI
 
 ```
-$ solc ./contracts/ContractName.sol --abi --include-path node_modules/ --base-path .
+$ npx solc@0.8.19 ./contracts/Presale.sol --abi --include-path node_modules/ --base-path .
 ```
 
 # hardhat commands

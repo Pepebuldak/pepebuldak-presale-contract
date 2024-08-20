@@ -54,11 +54,12 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   /**
    * @dev To initialize the contract with price feed address
    */
-  function initialize(address _priceFeed) public initializer {
+  function initialize(address _priceFeed, address _usdtAddress) public initializer {
     __Ownable_init();  // Initialize owner
     priceFeed = AggregatorV3Interface(_priceFeed);
+    USDTInterface = IERC20Upgradeable(_usdtAddress);
     baseDecimals = 1000000000000000000;
-}
+  }
 
   /**
    * @dev To pause the presale
