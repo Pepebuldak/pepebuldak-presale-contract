@@ -403,18 +403,6 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   }
 
   /**
-   * @dev to update userDeposits for purchases made on BSC
-   * @param _users array of users
-   * @param _userDeposits array of userDeposits associated with users
-   */
-  function updateFromBSC(address[] calldata _users, uint256[] calldata _userDeposits) external onlyOwner {
-    require(_users.length == _userDeposits.length, "Length mismatch");
-    for (uint256 i = 0; i < _users.length; i++) {
-      userDeposits[_users[i]] += _userDeposits[i];
-    }
-  }
-
-  /**
    * @dev To increment the rounds from backend
    */
   function incrementCurrentStep() external onlyOwner {
