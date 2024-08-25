@@ -153,7 +153,7 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
    * @dev To buy into a presale using USDT
    * @param amount No of tokens to buy
    */
-  function buyWithUSDT(uint256 amount) external checkSaleState(amount) whenNotPaused returns (bool) {
+  function buyWithUSDT(uint256 amount) external checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
     uint256 usdPrice = calculatePrice(amount);
     totalTokensSold += amount;
     uint256 price = usdPrice / (10 ** 12);
