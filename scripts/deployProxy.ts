@@ -40,7 +40,7 @@ async function main() {
 
   const presaleContract = await ethers.getContractAt("Presale", presaleAddress);
   // set receiver wallet address and max tokens to buy
-  await presaleContract.changePaymentWallet(deployer.address);
+  await presaleContract.changePaymentWallet('0xC4689a5772Cd5cb59F282a16847a439e83c5f311');
   await presaleContract.changeMaxTokensToBuy(200000000000);
   console.log("Payment wallet and max tokens set");
   // Start the claim process in the Presale contract
@@ -68,7 +68,7 @@ async function main() {
   console.log(`Claim process started in Presale contract`);
 
   // Set rounds in the Presale contract
-  const roundStartTime = 1724142297;
+  const roundStartTime = 1724569976;
   const roundsAmount = [
     ethers.BigNumber.from("105000000000"), // 1st round: 105 billion
     ethers.BigNumber.from("210000000000"), // 2nd round: 210 billion
