@@ -18,25 +18,25 @@ async function main() {
   const roundStartTime = 1727421176; // 4번째 인덱스의 시작 시점
 
   const roundsAmount = [
-    ethers.BigNumber.from("2100000000000"), // 1st round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 2nd round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 3rd round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 4th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 5th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 6th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 7th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 8th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 9th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 10th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 11th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 12th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 13th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 14th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 15th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 16th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 17th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 18th round: 2.1 trillion
-    ethers.BigNumber.from("2100000000000"), // 19th round: 2.1 trillion
+    ethers.BigNumber.from("105000000000"), // 1st round: 105 billion
+    ethers.BigNumber.from("210000000000"), // 2nd round: 210 billion
+    ethers.BigNumber.from("315000000000"), // 3rd round: 315 billion
+    ethers.BigNumber.from("420000000000"), // 4th round: 420 billion
+    ethers.BigNumber.from("525000000000"), // 5th round: 525 billion
+    ethers.BigNumber.from("630000000000"), // 6th round: 630 billion
+    ethers.BigNumber.from("735000000000"), // 7th round: 735 billion
+    ethers.BigNumber.from("840000000000"), // 8th round: 840 billion
+    ethers.BigNumber.from("945000000000"), // 9th round: 945 billion
+    ethers.BigNumber.from("1050000000000"), // 10th round: 1.05 trillion
+    ethers.BigNumber.from("1155000000000"), // 11th round: 1.155 trillion
+    ethers.BigNumber.from("1260000000000"), // 12th round: 1.26 trillion
+    ethers.BigNumber.from("1365000000000"), // 13th round: 1.365 trillion
+    ethers.BigNumber.from("1470000000000"), // 14th round: 1.47 trillion
+    ethers.BigNumber.from("1575000000000"), // 15th round: 1.575 trillion
+    ethers.BigNumber.from("1680000000000"), // 16th round: 1.68 trillion
+    ethers.BigNumber.from("1785000000000"), // 17th round: 1.785 trillion
+    ethers.BigNumber.from("1890000000000"), // 18th round: 1.89 trillion
+    ethers.BigNumber.from("1995000000000"), // 19th round: 1.995 trillion
     ethers.BigNumber.from("2100000000000"), // 20th round: 2.1 trillion
   ];
 
