@@ -7,9 +7,7 @@ async function main() {
   const presaleAddress = "0xa0315Fa13A6346BB724aa9a5642aF72D64f9f0aA";
   const presaleContract = await ethers.getContractAt("Presale", presaleAddress);
 
-  const timeConst = ethers.BigNumber.from(
-    "432000"
-  ); // 5일 간격
+  const timeConst = ethers.BigNumber.from("432000"); // 5일 간격
   await presaleContract.setTimeConstant(timeConst);
 
   console.log("Set Time const");

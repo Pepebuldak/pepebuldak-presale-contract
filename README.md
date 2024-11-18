@@ -25,6 +25,12 @@ $ yarn install
 $ yarn hardhat run scripts/deployProxy.ts --network ganache
 ```
 
+- contract proxy update
+
+```
+$ yarn hardhat run scripts/updateProxy.ts --network ganache
+```
+
 - contract verify
 
 ```

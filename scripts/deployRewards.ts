@@ -5,7 +5,6 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("[Referral Deployer account address]: " + deployer.address);
 
-  // Chainlink contract address (ETH/USD), Sepolia
   const CReferralPercent = 15;
   const usdtAddress = process.env.USDT_ADDRESS;
   const presaleAddress = "0xa0315Fa13A6346BB724aa9a5642aF72D64f9f0aA";

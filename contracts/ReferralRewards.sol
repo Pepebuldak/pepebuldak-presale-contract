@@ -149,7 +149,11 @@ contract ReferralRewards is Initializable, OwnableUpgradeable, ReentrancyGuardUp
             uint256[] memory pendingUSDTRewards
         )
     {
-        require(start < end && end <= referrerList.length, "Invalid range");
+        require(start < end, "Invalid range");
+
+        if (end > referrerList.length) {
+            end = referrerList.length;
+        }
 
         uint256 range = end - start;
         referrerAddresses = new address[](range);
