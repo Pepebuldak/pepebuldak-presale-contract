@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./interfaces/IStakingManager.sol";
+import "./interfaces/IReferralRewards.sol";
 
 
 contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeable, PausableUpgradeable {
@@ -40,6 +41,8 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   mapping(address => bool) public isBlacklisted;
   mapping(address => bool) public isWhitelisted;
 
+  uint256 public referralRewardPercentage;
+  IReferralRewards public referralRewards;
 
   event SaleTimeSet(uint256 _start, uint256 _end, uint256 timestamp);
   event SaleTimeUpdated(bytes32 indexed key, uint256 prevValue, uint256 newValue, uint256 timestamp);
@@ -59,6 +62,7 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     priceFeed = AggregatorV3Interface(_priceFeed);
     USDTInterface = IERC20Upgradeable(_usdtAddress);
     baseDecimals = 1000000000000000000;
+    referralRewardPercentage = 15; // Default 15%
   }
 
   /**
@@ -152,8 +156,10 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   /**
    * @dev To buy into a presale using USDT
    * @param amount No of tokens to buy
+   * @param stake boolean flag for token staking
+   * @param referrer referrer address
    */
-  function buyWithUSDT(uint256 amount) external checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
+  function buyWithUSDT(uint256 amount, bool stake, address referrer) external checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
     uint256 usdPrice = calculatePrice(amount);
     totalTokensSold += amount;
     uint256 price = usdPrice / (10 ** 12);
@@ -170,15 +176,31 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
       remainingTokensTracker.push(unsoldTokens);
       currentStep += 1;
     }
-    if (stakingWhitelistStatus) {
-      require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
+    if (stake) {
+      if (stakingWhitelistStatus) {
+        require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
+      }
+      stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
+      totalBoughtAndStaked += amount;
+      emit TokensBoughtAndStaked(_msgSender(), amount, address(USDTInterface), price, usdPrice, block.timestamp);
+    } else {
+      userDeposits[_msgSender()] += (amount * baseDecimals);
+      emit TokensBought(_msgSender(), amount, address(USDTInterface), price, usdPrice, block.timestamp);
     }
-    stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
-    totalBoughtAndStaked += amount;
-    emit TokensBoughtAndStaked(_msgSender(), amount, address(USDTInterface), price, usdPrice, block.timestamp);
+
     usdRaised += usdPrice;
     uint256 ourAllowance = USDTInterface.allowance(_msgSender(), address(this));
     require(price <= ourAllowance, "Make sure to add enough allowance");
+    // referral rewards
+    if (referrer != address(0) && referrer != _msgSender() && address(referralRewards) != address(0)) {
+        uint256 referralReward = (price * referralRewardPercentage) / 100;
+        price -= referralReward; 
+        require(
+            USDTInterface.transferFrom(_msgSender(), address(referralRewards), referralReward),
+            "USDT transfer to referral contract failed"
+        );
+        referralRewards.addReward(referrer, 0, referralReward);
+    }
     splitUSDTValue(price);
 
     return true;
@@ -187,8 +209,10 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
   /**
    * @dev To buy into a presale using ETH
    * @param amount No of tokens to buy
+   * @param stake boolean flag for token staking
+   * @param referrer referrer address
    */
-  function buyWithEth(uint256 amount) external payable checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
+  function buyWithEth(uint256 amount, bool stake, address referrer) external payable checkSaleState(amount) whenNotPaused nonReentrant returns (bool) {
     uint256 usdPrice = calculatePrice(amount);
     uint256 ethAmount = (usdPrice * baseDecimals) / getLatestPrice();
     require(msg.value >= ethAmount, "Less payment");
@@ -207,13 +231,24 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
       remainingTokensTracker.push(unsoldTokens);
       currentStep += 1;
     }
-    if (stakingWhitelistStatus) {
-      require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
+    if (stake) {
+      if (stakingWhitelistStatus) {
+        require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
+      }
+      stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
+      totalBoughtAndStaked += amount;
+      emit TokensBoughtAndStaked(_msgSender(), amount, address(0), ethAmount, usdPrice, block.timestamp);
+    } else {
+      userDeposits[_msgSender()] += (amount * baseDecimals);
+      emit TokensBought(_msgSender(), amount, address(0), ethAmount, usdPrice, block.timestamp);
     }
-    stakingManagerInterface.depositByPresale(_msgSender(), amount * baseDecimals);
-    totalBoughtAndStaked += amount;
-    emit TokensBoughtAndStaked(_msgSender(), amount, address(0), ethAmount, usdPrice, block.timestamp);
     usdRaised += usdPrice;
+    // Handle referral rewards
+    if (referrer != address(0) && referrer != _msgSender() && address(referralRewards) != address(0)) {
+        uint256 referralReward = (ethAmount * referralRewardPercentage) / 100;
+        ethAmount -= referralReward; // Deduct referral reward from total
+        referralRewards.addReward{value: referralReward}(referrer, referralReward, 0);
+    }
     splitETHValue(ethAmount);
     if (excess > 0) sendValue(payable(_msgSender()), excess);
     return true;
@@ -318,6 +353,22 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
 
   function changeRoundsData(uint256[][3] memory _rounds) external onlyOwner {
     rounds = _rounds;
+  }
+
+  /**
+    * @dev Set referral rewards contract
+    */
+  function setReferralRewardsContract(address _referralRewards) external onlyOwner {
+      require(_referralRewards != address(0), "Invalid referral contract");
+      referralRewards = IReferralRewards(_referralRewards);
+  }
+
+  /**
+    * @dev Set referral reward percentage
+    */
+  function setReferralRewardPercentage(uint256 _percentage) external onlyOwner {
+      require(_percentage <= 100, "Percentage cannot exceed 100");
+      referralRewardPercentage = _percentage;
   }
 
   /**
@@ -464,5 +515,40 @@ contract Presale is Initializable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
       uint256 remainingTokens = IERC20Upgradeable(saleToken).balanceOf(address(this));
       require(remainingTokens > 0, "No remaining tokens to withdraw");
       IERC20Upgradeable(saleToken).transfer(owner(), remainingTokens);
+  }
+
+  /**
+   * @dev To claim tokens after claiming starts
+   */
+  function claim() external whenNotPaused returns (bool) {
+    require(saleToken != address(0), "Sale token not added");
+    require(!isBlacklisted[_msgSender()], "This Address is Blacklisted");
+    if (whitelistClaimOnly) {
+      require(isWhitelisted[_msgSender()], "User not whitelisted for claim");
+    }
+    require(block.timestamp >= endTime, "Claim has not started yet");
+    require(!hasClaimed[_msgSender()], "Already claimed");
+    hasClaimed[_msgSender()] = true;
+    uint256 amount = userDeposits[_msgSender()];
+    require(amount > 0, "Nothing to claim");
+    delete userDeposits[_msgSender()];
+    bool success = IERC20Upgradeable(saleToken).transfer(_msgSender(), amount);
+    require(success, "Token transfer failed");
+    emit TokensClaimed(_msgSender(), amount, block.timestamp);
+    return true;
+  }
+
+  function claimAndStake() external whenNotPaused returns (bool) {
+    require(saleToken != address(0), "Sale token not added");
+    require(!isBlacklisted[_msgSender()], "This Address is Blacklisted");
+    if (stakingWhitelistStatus) {
+      require(isWhitelisted[_msgSender()], "User not whitelisted for stake");
+    }
+    uint256 amount = userDeposits[_msgSender()];
+    require(amount > 0, "Nothing to stake");
+    stakingManagerInterface.depositByPresale(_msgSender(), amount);
+    delete userDeposits[_msgSender()];
+    emit TokensClaimedAndStaked(_msgSender(), amount, block.timestamp);
+    return true;
   }
 }
