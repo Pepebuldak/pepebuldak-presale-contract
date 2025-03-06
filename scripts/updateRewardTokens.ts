@@ -10,8 +10,8 @@ async function main() {
     stakingManagerAddress
   );
   const rewardTokensPerBlock = ethers.BigNumber.from(
-    "1000000000000000000000000"
-  ); // 1,000,000 token
+    "200000000000000000000000"
+  ); // 200,000 token
   await stakingManagerContract.setRewardTokensPerBlock(rewardTokensPerBlock);
 
   console.log("Staking manager reward updated");
