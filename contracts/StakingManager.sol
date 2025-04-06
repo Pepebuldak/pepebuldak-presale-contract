@@ -14,7 +14,7 @@ contract stakingManager is OwnableUpgradeable {
   uint256 public tokensStaked; // Total tokens staked
 
   uint256 private lastRewardedBlock; // Last block number the user had their rewards calculated
-  uint256 private accumulatedRewardsPerShare; // Accumulated rewards per share times REWARDS_PRECISION
+  uint256 public accumulatedRewardsPerShare; // Accumulated rewards per share times REWARDS_PRECISION
   uint256 public rewardTokensPerBlock; // Number of reward tokens minted per block
   uint256 private constant REWARDS_PRECISION = 1e12; // A big number to perform mul and div operations
 
@@ -22,6 +22,9 @@ contract stakingManager is OwnableUpgradeable {
   bool public harvestLock; //To lock the harvest/claim.
   uint public endBlock; //At this block,the rewards generation will be stopped.
   uint256 public claimStart; //Users can claim after this time in epoch.
+  uint256 public boostedRewardMultiplier = 5; // Multiplier for boosted deposits
+  address public trustedSigner; // Signer address for verifying boost deposits
+  uint256 public tokensStakedWeighted; // Weighted tokens for reward calculation
 
   // Staking user for a pool
   struct PoolStaker {
@@ -30,6 +33,7 @@ contract stakingManager is OwnableUpgradeable {
     uint256 lastUpdatedBlock;
     uint256 Harvestedrewards; // The reward tokens quantity the user  harvested
     uint256 rewardDebt; // The amount relative to accumulatedRewardsPerShare the user can't get as reward
+    uint256 rewardMultiplier;
   }
 
   //  staker address => PoolStaker
@@ -38,6 +42,7 @@ contract stakingManager is OwnableUpgradeable {
   mapping(address => uint) public userLockedRewards;
   // Events
   event Deposit(address indexed user, uint256 amount);
+  event DepositBoosted(address indexed user, uint256 amount, uint256 multiplier);
   event Withdraw(address indexed user, uint256 amount);
   event HarvestRewards(address indexed user, uint256 amount);
 
@@ -62,38 +67,9 @@ contract stakingManager is OwnableUpgradeable {
   }
 
   /**
-   * @dev Deposit tokens to the pool
+   * @dev Internal function to handle deposit logic
    */
-  function deposit(uint256 _amount) external {
-    require(block.number < endBlock, 'staking has been ended');
-    require(_amount > 0, "Deposit amount can't be zero");
-
-    PoolStaker storage staker = poolStakers[msg.sender];
-
-    // Update pool stakers
-    harvestRewards();
-
-    // Update current staker
-    staker.amount += _amount;
-    staker.rewardDebt = (staker.amount * accumulatedRewardsPerShare) / REWARDS_PRECISION;
-    staker.stakedTime = block.timestamp;
-    staker.lastUpdatedBlock = block.number;
-
-    // Update pool
-    tokensStaked += _amount;
-
-    // Deposit tokens
-    emit Deposit(msg.sender, _amount);
-    stakeToken.safeTransferFrom(msg.sender, address(this), _amount);
-  }
-
-  /**
-   * @dev Deposit tokens to  pool by presale contract
-   */
-  function depositByPresale(address _user, uint256 _amount) external onlyPresale {
-    require(block.number < endBlock, 'staking has been ended');
-    require(_amount > 0, "Deposit amount can't be zero");
-
+  function _handleDeposit(address _user, uint256 _amount, uint256 _multiplier) internal {
     PoolStaker storage staker = poolStakers[_user];
 
     // Update pool stakers
@@ -101,16 +77,57 @@ contract stakingManager is OwnableUpgradeable {
 
     // Update current staker
     staker.amount += _amount;
-    staker.rewardDebt = (staker.amount * accumulatedRewardsPerShare) / REWARDS_PRECISION;
+    staker.rewardMultiplier = _multiplier;
+    uint256 weightedAmount = staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    staker.rewardDebt = (weightedAmount * accumulatedRewardsPerShare) / REWARDS_PRECISION;
     staker.stakedTime = block.timestamp;
+    staker.lastUpdatedBlock = block.number;
 
     // Update pool
     tokensStaked += _amount;
-    tokensStakedByPresale += _amount;
+    tokensStakedWeighted += _amount * _multiplier;
 
-    // Deposit tokens
+    // Transfer tokens
+    stakeToken.safeTransferFrom(msg.sender, address(this), _amount);
+  }
+
+  /**
+   * @dev Deposit tokens to the pool
+   */
+  function deposit(uint256 _amount) external {
+    require(block.number < endBlock, 'staking has been ended');
+    require(_amount > 0, "Deposit amount can't be zero");
+
+    _handleDeposit(msg.sender, _amount, 1);
+    emit Deposit(msg.sender, _amount);
+  }
+
+  /**
+   * @dev Boost deposit tokens to the pool
+   */
+  function depositWithBoost(uint256 _amount, bytes memory signature) external {
+    require(block.number < endBlock, 'staking has been ended');
+    require(_amount > 0, "Deposit amount can't be zero");
+
+    // Verify signature
+    bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(msg.sender, _amount))));
+    address recoveredSigner = recoverSigner(messageHash, signature);
+    require(recoveredSigner == trustedSigner, "Invalid signature");
+
+    _handleDeposit(msg.sender, _amount, boostedRewardMultiplier);
+    emit DepositBoosted(msg.sender, _amount, boostedRewardMultiplier);
+  }
+
+  /**
+  * @dev Deposit tokens to the pool by presale contract
+  */
+  function depositByPresale(address _user, uint256 _amount) external onlyPresale {
+    require(block.number < endBlock, 'staking has been ended');
+    require(_amount > 0, "Deposit amount can't be zero");
+
+    _handleDeposit(_user, _amount, 1);
+    tokensStakedByPresale += _amount;
     emit Deposit(_user, _amount);
-    stakeToken.safeTransferFrom(presaleContract, address(this), _amount);
   }
 
   /**
@@ -130,6 +147,7 @@ contract stakingManager is OwnableUpgradeable {
 
     // Update pool
     tokensStaked -= amount;
+    tokensStakedWeighted -= staker.amount * getRewardMultiplier(staker.rewardMultiplier);
 
     // Withdraw tokens
     emit Withdraw(msg.sender, amount);
@@ -151,13 +169,14 @@ contract stakingManager is OwnableUpgradeable {
 
     updatePoolRewards();
     PoolStaker storage staker = poolStakers[_user];
-    uint256 rewardsToHarvest = ((staker.amount * accumulatedRewardsPerShare) / REWARDS_PRECISION) - staker.rewardDebt;
+    uint256 weightedAmount = staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    uint256 rewardsToHarvest = ((weightedAmount * accumulatedRewardsPerShare) / REWARDS_PRECISION) - staker.rewardDebt;
     if (rewardsToHarvest == 0) {
       return;
     }
 
     staker.Harvestedrewards += rewardsToHarvest;
-    staker.rewardDebt = (staker.amount * accumulatedRewardsPerShare) / REWARDS_PRECISION;
+    staker.rewardDebt = (weightedAmount * accumulatedRewardsPerShare) / REWARDS_PRECISION;
     if (!harvestLock) {
       if (userLockedRewards[_user] > 0) {
         rewardsToHarvest += userLockedRewards[_user];
@@ -174,13 +193,13 @@ contract stakingManager is OwnableUpgradeable {
    * @dev Update pool's accumulatedRewardsPerShare and lastRewardedBlock
    */
   function updatePoolRewards() private {
-    if (tokensStaked == 0) {
+    if (tokensStakedWeighted == 0) {
       lastRewardedBlock = block.number;
       return;
     }
     uint256 blocksSinceLastReward = block.number > endBlock ? endBlock - lastRewardedBlock : block.number - lastRewardedBlock;
     uint256 rewards = blocksSinceLastReward * rewardTokensPerBlock;
-    accumulatedRewardsPerShare = accumulatedRewardsPerShare + ((rewards * REWARDS_PRECISION) / tokensStaked);
+    accumulatedRewardsPerShare = accumulatedRewardsPerShare + ((rewards * REWARDS_PRECISION) / tokensStakedWeighted);
     lastRewardedBlock = block.number > endBlock ? endBlock : block.number;
   }
 
@@ -188,14 +207,36 @@ contract stakingManager is OwnableUpgradeable {
    *@dev To get the number of rewards that user can get
    */
   function getRewards(address _user) public view returns (uint) {
-    if (tokensStaked == 0) {
-      return 0;
-    }
+    if (tokensStakedWeighted == 0) return 0;
     uint256 blocksSinceLastReward = block.number > endBlock ? endBlock - lastRewardedBlock : block.number - lastRewardedBlock;
     uint256 rewards = blocksSinceLastReward * rewardTokensPerBlock;
-    uint256 accCalc = accumulatedRewardsPerShare + ((rewards * REWARDS_PRECISION) / tokensStaked);
+    uint256 accCalc = accumulatedRewardsPerShare + ((rewards * REWARDS_PRECISION) / tokensStakedWeighted);
     PoolStaker memory staker = poolStakers[_user];
-    return ((staker.amount * accCalc) / REWARDS_PRECISION) - staker.rewardDebt + userLockedRewards[_user];
+    uint256 weightedAmount = staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    return ((weightedAmount * accCalc) / REWARDS_PRECISION) - staker.rewardDebt + userLockedRewards[_user];
+  }
+
+  function getRewardMultiplier(uint256 rawMultiplier) internal pure returns (uint256) {
+    return rawMultiplier == 0 ? 1 : rawMultiplier;
+  }
+
+  function recoverSigner(bytes32 hash, bytes memory signature) internal pure returns (address) {
+    bytes32 r;
+    bytes32 s;
+    uint8 v;
+
+    (v, r, s) = splitSignature(signature);
+    return ecrecover(hash, v, r, s);
+  }
+
+  function splitSignature(bytes memory sig) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
+    require(sig.length == 65, "Invalid signature length");
+
+    assembly {
+      r := mload(add(sig, 32))
+      s := mload(add(sig, 64))
+      v := byte(0, mload(add(sig, 96)))
+    }
   }
 
   function setHarvestLock(bool _harvestlock) external onlyOwner {
@@ -244,5 +285,18 @@ contract stakingManager is OwnableUpgradeable {
     for (uint256 i = 0; i < _userToRemoveFromBlacklist.length; i++) {
       isBlacklisted[_userToRemoveFromBlacklist[i]] = false;
     }
+  }
+
+  function setBoostedRewardMultiplier(uint256 _multiplier) external onlyOwner {
+    require(_multiplier >= 1, "Multiplier must be at least 1");
+    boostedRewardMultiplier = _multiplier;
+  }
+
+  function setTrustedSigner(address _trustedSigner) external onlyOwner {
+    trustedSigner = _trustedSigner;
+  }
+
+  function setTokensStakedWeighted(uint256 _tokensStakedWeighted) external onlyOwner {
+    tokensStakedWeighted = _tokensStakedWeighted;
   }
 }
