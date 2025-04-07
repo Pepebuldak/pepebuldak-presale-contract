@@ -110,7 +110,7 @@ contract stakingManager is OwnableUpgradeable {
     require(_amount > 0, "Deposit amount can't be zero");
 
     // Verify signature
-    bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(msg.sender, _amount))));
+    bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(msg.sender, _amount, "OpenFranchise"))));
     address recoveredSigner = recoverSigner(messageHash, signature);
     require(recoveredSigner == trustedSigner, "Invalid signature");
 
