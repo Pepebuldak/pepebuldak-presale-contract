@@ -1,3 +1,4 @@
+import { ContractFactory } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
 export const deploy = async (contractName: string, args: unknown[]) => {
@@ -27,16 +28,15 @@ export const deployProxy = async (
 
 export const upgradesProxy = async (
   proxyAddress: string,
-  contractName: string,
+  contractFactory: ContractFactory,
   constructorArgs?: unknown[]
 ) => {
-  const contractFactory = await ethers.getContractFactory(contractName);
   const contract = await upgrades.upgradeProxy(proxyAddress, contractFactory, {
     unsafeAllow: ["constructor", "state-variable-immutable"],
     constructorArgs: constructorArgs,
   });
   await contract.deployed();
-  console.log(`[${contractName} proxy upgraded]: ${contract.address}`);
+  console.log(`[proxy upgraded]: ${contract.address}`);
   return contract;
 };
 
