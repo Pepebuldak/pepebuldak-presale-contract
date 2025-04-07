@@ -22,9 +22,6 @@ contract stakingManager is OwnableUpgradeable {
   bool public harvestLock; //To lock the harvest/claim.
   uint public endBlock; //At this block,the rewards generation will be stopped.
   uint256 public claimStart; //Users can claim after this time in epoch.
-  uint256 public boostedRewardMultiplier = 5; // Multiplier for boosted deposits
-  address public trustedSigner; // Signer address for verifying boost deposits
-  uint256 public tokensStakedWeighted; // Weighted tokens for reward calculation
 
   // Staking user for a pool
   struct PoolStaker {
@@ -33,13 +30,18 @@ contract stakingManager is OwnableUpgradeable {
     uint256 lastUpdatedBlock;
     uint256 Harvestedrewards; // The reward tokens quantity the user  harvested
     uint256 rewardDebt; // The amount relative to accumulatedRewardsPerShare the user can't get as reward
-    uint256 rewardMultiplier;
   }
 
   //  staker address => PoolStaker
   mapping(address => PoolStaker) public poolStakers;
   mapping(address => bool) public isBlacklisted;
   mapping(address => uint) public userLockedRewards;
+  mapping(address => uint256) public stakerRewardMultiplier;
+
+  // boost staking
+  uint256 public boostedRewardMultiplier; // Multiplier for boosted deposits
+  address public trustedSigner; // Signer address for verifying boost deposits
+  uint256 public tokensStakedWeighted; // Weighted tokens for reward calculation
   // Events
   event Deposit(address indexed user, uint256 amount);
   event DepositBoosted(address indexed user, uint256 amount, uint256 multiplier);
@@ -77,8 +79,8 @@ contract stakingManager is OwnableUpgradeable {
 
     // Update current staker
     staker.amount += _amount;
-    staker.rewardMultiplier = _multiplier;
-    uint256 weightedAmount = staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    stakerRewardMultiplier[_user] = _multiplier;
+    uint256 weightedAmount = staker.amount * getRewardMultiplier(stakerRewardMultiplier[_user]);
     staker.rewardDebt = (weightedAmount * accumulatedRewardsPerShare) / REWARDS_PRECISION;
     staker.stakedTime = block.timestamp;
     staker.lastUpdatedBlock = block.number;
@@ -142,12 +144,13 @@ contract stakingManager is OwnableUpgradeable {
     // Pay rewards
     harvestRewards();
 
-    //delete staker
-    delete poolStakers[msg.sender];
-
     // Update pool
     tokensStaked -= amount;
-    tokensStakedWeighted -= staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    tokensStakedWeighted -= amount * getRewardMultiplier(stakerRewardMultiplier[msg.sender]);
+
+    //delete staker
+    delete poolStakers[msg.sender];
+    delete stakerRewardMultiplier[msg.sender];
 
     // Withdraw tokens
     emit Withdraw(msg.sender, amount);
@@ -169,7 +172,7 @@ contract stakingManager is OwnableUpgradeable {
 
     updatePoolRewards();
     PoolStaker storage staker = poolStakers[_user];
-    uint256 weightedAmount = staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    uint256 weightedAmount = staker.amount * getRewardMultiplier(stakerRewardMultiplier[_user]);
     uint256 rewardsToHarvest = ((weightedAmount * accumulatedRewardsPerShare) / REWARDS_PRECISION) - staker.rewardDebt;
     if (rewardsToHarvest == 0) {
       return;
@@ -212,7 +215,7 @@ contract stakingManager is OwnableUpgradeable {
     uint256 rewards = blocksSinceLastReward * rewardTokensPerBlock;
     uint256 accCalc = accumulatedRewardsPerShare + ((rewards * REWARDS_PRECISION) / tokensStakedWeighted);
     PoolStaker memory staker = poolStakers[_user];
-    uint256 weightedAmount = staker.amount * getRewardMultiplier(staker.rewardMultiplier);
+    uint256 weightedAmount = staker.amount * getRewardMultiplier(stakerRewardMultiplier[_user]);
     return ((weightedAmount * accCalc) / REWARDS_PRECISION) - staker.rewardDebt + userLockedRewards[_user];
   }
 
