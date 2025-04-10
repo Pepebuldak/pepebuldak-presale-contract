@@ -23,7 +23,7 @@ async function main() {
 
   const stakingContract = await ethers.getContractAt("stakingManager", stakingManagerAddress);
   await stakingContract.setTokensStakedWeighted(tokenStaked);
-  await stakingContract.setBoostedRewardMultiplier(5);
+  await stakingContract.setBoostedRewardMultiplier(3);
   await stakingContract.setTrustedSigner("0xd97603C6771C654DDd9957844CB0040764F1dC97");
 }
 

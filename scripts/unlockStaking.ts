@@ -10,6 +10,7 @@ async function main() {
     stakingManagerAddress
   );
   await stakingManagerContract.setLockedTime(3600); // 1hour
+  await stakingManagerContract.setBoostedRewardMultiplier(3);
   await stakingManagerContract.setHarvestLock(false);
 
   console.log("Staking manager unlocked");
