@@ -7,7 +7,7 @@ async function main() {
   const presaleAddress = "0xa0315Fa13A6346BB724aa9a5642aF72D64f9f0aA";
   const presaleContract = await ethers.getContractAt("Presale", presaleAddress);
 
-  const endTime = 1739864002; // presale 종료시각
+  const endTime = 1745560800; // presale end time
   await presaleContract.changeSaleTimes(0, endTime);
   await presaleContract.withdrawRemainingTokens();
 
