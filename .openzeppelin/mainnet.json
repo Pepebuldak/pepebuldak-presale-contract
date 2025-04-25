@@ -1173,6 +1173,278 @@
         },
         "namespaces": {}
       }
+    },
+    "b5f31f2dbfe92bfcdd7f6f811bf3e4e054f3fffc1fc69ea0191a11bb1f43b99d": {
+      "address": "0xf7fbc96EFb3ED07594194D0d6BADD5F79706D338",
+      "txHash": "0x9bc2cb6a94d985c4b913c4780cdb890bdfbe390e767ad7da1a03e248afe956d4",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "stakeToken",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_contract(IERC20Upgradeable)360",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:11"
+          },
+          {
+            "label": "presaleContract",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:12"
+          },
+          {
+            "label": "tokensStakedByPresale",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:13"
+          },
+          {
+            "label": "tokensStaked",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:14"
+          },
+          {
+            "label": "lastRewardedBlock",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:16"
+          },
+          {
+            "label": "accumulatedRewardsPerShare",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:17"
+          },
+          {
+            "label": "rewardTokensPerBlock",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:18"
+          },
+          {
+            "label": "lockedTime",
+            "offset": 0,
+            "slot": "108",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:21"
+          },
+          {
+            "label": "harvestLock",
+            "offset": 0,
+            "slot": "109",
+            "type": "t_bool",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:22"
+          },
+          {
+            "label": "endBlock",
+            "offset": 0,
+            "slot": "110",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:23"
+          },
+          {
+            "label": "claimStart",
+            "offset": 0,
+            "slot": "111",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:24"
+          },
+          {
+            "label": "poolStakers",
+            "offset": 0,
+            "slot": "112",
+            "type": "t_mapping(t_address,t_struct(PoolStaker)1010_storage)",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:36"
+          },
+          {
+            "label": "isBlacklisted",
+            "offset": 0,
+            "slot": "113",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:37"
+          },
+          {
+            "label": "userLockedRewards",
+            "offset": 0,
+            "slot": "114",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:38"
+          },
+          {
+            "label": "stakerRewardMultiplier",
+            "offset": 0,
+            "slot": "115",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:39"
+          },
+          {
+            "label": "boostedRewardMultiplier",
+            "offset": 0,
+            "slot": "116",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:42"
+          },
+          {
+            "label": "trustedSigner",
+            "offset": 0,
+            "slot": "117",
+            "type": "t_address",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:43"
+          },
+          {
+            "label": "tokensStakedWeighted",
+            "offset": 0,
+            "slot": "118",
+            "type": "t_uint256",
+            "contract": "stakingManager",
+            "src": "contracts/StakingManager.sol:44"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IERC20Upgradeable)360": {
+            "label": "contract IERC20Upgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(PoolStaker)1010_storage)": {
+            "label": "mapping(address => struct stakingManager.PoolStaker)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PoolStaker)1010_storage": {
+            "label": "struct stakingManager.PoolStaker",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "stakedTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "lastUpdatedBlock",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "Harvestedrewards",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
     }
   }
 }
