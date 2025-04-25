@@ -9,6 +9,7 @@ async function main() {
 
   const endTime = 1739864002; // presale 종료시각
   await presaleContract.changeSaleTimes(0, endTime);
+  await presaleContract.withdrawRemainingTokens();
 
   console.log("end Presale");
 }
